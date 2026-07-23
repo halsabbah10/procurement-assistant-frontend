@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from "react";
 import { streamChat } from "../lib/api";
 import type { ChatMessage } from "../lib/types";
@@ -30,6 +31,13 @@ export function useChat(conversationId: string) {
             }),
           );
         });
+      } catch (error) {
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== assistantId) return m;
+            return { ...m, text: "Something went wrong — try again." };
+          }),
+        );
       } finally {
         setIsStreaming(false);
       }

@@ -13,6 +13,11 @@ export async function streamChat(
     body: JSON.stringify({ message, conversation_id: conversationId }),
   });
 
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Chat API error (${response.status}): ${errorText}`);
+  }
+
   if (!response.body) throw new Error("No response body from chat endpoint");
 
   const reader = response.body.getReader();
