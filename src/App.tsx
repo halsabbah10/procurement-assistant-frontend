@@ -1,7 +1,12 @@
+import { useMemo } from "react";
+import { ChatPanel } from "./components/Chat/ChatPanel";
+
 export default function App() {
+  const conversationId = useMemo(() => crypto.randomUUID(), []);
+
   return (
-    <div className="flex h-screen items-center justify-center text-slate-500">
-      Procurement Assistant — scaffolding in place, chat UI lands in Phase 5.
+    <div className="h-screen bg-white">
+      <ChatPanel conversationId={conversationId} />
     </div>
   );
 }
