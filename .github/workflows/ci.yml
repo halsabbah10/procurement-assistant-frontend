@@ -13,5 +13,9 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
-      - run: npx tsc --noEmit
+      # Plain `tsc --noEmit` is a silent no-op here: this repo's root
+      # tsconfig.json is solution-style ("files": [], only "references"),
+      # so it type-checks nothing and exits 0 regardless of real errors.
+      # `-b` makes it follow the references and actually check src/.
+      - run: npx tsc -b --noEmit
       - run: npm run build
