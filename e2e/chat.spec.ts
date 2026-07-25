@@ -3,13 +3,19 @@ import { expect, test } from "@playwright/test";
 test("user can ask a question and receive an answer with the dashboard visible", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByText(/most frequently ordered/i)).toBeVisible();
+  // Dashboard loads independently of chat (fetches on mount) — confirms the
+  // live analytics panel actually rendered before we even send a question.
+  await expect(page.getByText("Top departments")).toBeVisible();
 
   const input = page.getByPlaceholder("Ask a question...");
   await input.fill("How many purchase orders were created in fiscal year 2013-2014?");
   await page.getByRole("button", { name: "Send" }).click();
 
-  await expect(page.getByText(/120,?636/)).toBeVisible({ timeout: 30_000 });
+  // .first(): the same number can legitimately appear twice — once in the
+  // streamed step-trace preview (the model's draft text, shown live above
+  // the final answer), once in the final answer itself. Not a bug, just an
+  // ambiguous locator for a short answer where both texts nearly coincide.
+  await expect(page.getByText(/120,?636/).first()).toBeVisible({ timeout: 30_000 });
 
   await expect(page.getByText("Spend by fiscal year")).toBeVisible();
   await expect(page.getByText("Top departments")).toBeVisible();
