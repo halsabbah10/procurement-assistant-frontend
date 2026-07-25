@@ -13,6 +13,16 @@ interface Summary {
   by_quarter: Array<{ fiscal_year: string; quarter: number; total_spend: number }>;
 }
 
+function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-line bg-surface p-4">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</h2>
+      {subtitle && <p className="mb-1 text-[0.7rem] text-ink-faint">{subtitle}</p>}
+      <div className={subtitle ? "" : "mt-2"}>{children}</div>
+    </div>
+  );
+}
+
 export function DashboardPanel() {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const { data, isLoading, error } = useQuery<Summary>({
@@ -29,69 +39,72 @@ export function DashboardPanel() {
     [data],
   );
 
-  if (isLoading) return <div className="p-4 text-sm text-ink-faint">Loading dashboard…</div>;
-  if (error) return <div className="p-4 text-sm text-oxide">Couldn't load analytics.</div>;
+  if (isLoading) return <div className="p-6 text-sm text-ink-faint">Loading dashboard…</div>;
+  if (error) return <div className="p-6 text-sm text-oxide">Couldn't load analytics.</div>;
   if (!data) return null;
 
   if (selectedDepartment) {
     return (
-      <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-3xl">
         <DepartmentDrilldown department={selectedDepartment} onBack={() => setSelectedDepartment(null)} />
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4">
-      <p className="mb-4 font-mono text-xs uppercase tracking-wide text-brass">Live analytics</p>
+    <div className="mx-auto max-w-6xl p-6">
+      <p className="mb-4 font-mono text-xs uppercase tracking-wide text-brass">
+        Live analytics · California state purchase orders
+      </p>
 
-      <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        Spend by fiscal year
-      </h2>
-      <DashboardBarChart data={data.by_fiscal_year} xKey="fiscal_year" yKey="total_spend" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card title="Spend by fiscal year">
+          <DashboardBarChart data={data.by_fiscal_year} xKey="fiscal_year" yKey="total_spend" height={220} />
+        </Card>
+        <Card title="Quarterly trend">
+          <DashboardLineChart data={quarterlyTrend} xKey="label" yKey="total_spend" height={220} />
+        </Card>
+        <Card title="Spend by acquisition type">
+          <DashboardPieChart
+            data={data.by_acquisition_type}
+            nameKey="acquisition_type"
+            valueKey="total_spend"
+            height={220}
+          />
+        </Card>
+      </div>
 
-      <h2 className="mb-1 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        Quarterly trend
-      </h2>
-      <DashboardLineChart data={quarterlyTrend} xKey="label" yKey="total_spend" />
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card title="Top departments" subtitle="Click a department for detail.">
+          <ul className="space-y-1 text-sm">
+            {data.top_departments.map((d) => (
+              <li key={d.department}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDepartment(d.department)}
+                  className="flex w-full justify-between gap-2 rounded px-1 py-1 text-left hover:bg-paper-dim"
+                >
+                  <span className="truncate text-ink-soft">{d.department}</span>
+                  <span className="shrink-0 font-mono font-medium text-ink">
+                    {formatCompactCurrency(d.total_spend)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
 
-      <h2 className="mb-1 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        Spend by acquisition type
-      </h2>
-      <DashboardPieChart data={data.by_acquisition_type} nameKey="acquisition_type" valueKey="total_spend" />
-
-      <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        Top departments
-      </h2>
-      <p className="mb-1 text-[0.7rem] text-ink-faint">Click a department for detail.</p>
-      <ul className="space-y-1 text-sm">
-        {data.top_departments.map((d) => (
-          <li key={d.department}>
-            <button
-              type="button"
-              onClick={() => setSelectedDepartment(d.department)}
-              className="flex w-full justify-between gap-2 rounded px-1 py-0.5 text-left hover:bg-paper-dim"
-            >
-              <span className="truncate text-ink-soft">{d.department}</span>
-              <span className="shrink-0 font-mono font-medium text-ink">
-                {formatCompactCurrency(d.total_spend)}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <h2 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-        Top suppliers
-      </h2>
-      <ul className="space-y-1 text-sm">
-        {data.top_suppliers.map((s) => (
-          <li key={s.supplier} className="flex justify-between gap-2">
-            <span className="truncate text-ink-soft">{s.supplier}</span>
-            <span className="shrink-0 font-mono text-ink">{formatCompactCurrency(s.total_spend)}</span>
-          </li>
-        ))}
-      </ul>
+        <Card title="Top suppliers">
+          <ul className="space-y-1 text-sm">
+            {data.top_suppliers.map((s) => (
+              <li key={s.supplier} className="flex justify-between gap-2 px-1 py-1">
+                <span className="truncate text-ink-soft">{s.supplier}</span>
+                <span className="shrink-0 font-mono text-ink">{formatCompactCurrency(s.total_spend)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,30 +1,47 @@
 import { Suspense, lazy, useState } from "react";
+import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
 import { ChatPanel } from "./components/Chat/ChatPanel";
 import { ConversationSidebar } from "./components/Chat/ConversationSidebar";
 import { useConversation } from "./hooks/useConversation";
 
-// Lazy-loaded: DashboardPanel pulls in Recharts, which would otherwise
-// force the same chart-library bundle onto every page load regardless of
-// whether it's needed yet — deferring it lets the chat become interactive
-// first, with the dashboard filling in a beat later. This also restores
-// the point of lazy-loading Chat/InsightChart's own Recharts usage: if the
-// dashboard imported it eagerly, Recharts would already be in the main
-// bundle and that chat-side lazy-loading would do nothing.
+// Lazy-loaded: pulls in Recharts, which would otherwise force the chart
+// library onto every page load (including the chat page) regardless of
+// whether the user ever visits Analytics.
 const DashboardPanel = lazy(() =>
   import("./components/Dashboard/DashboardPanel").then((m) => ({ default: m.DashboardPanel })),
 );
 
 function DashboardFallback() {
-  return <div className="h-full animate-pulse bg-paper-dim" />;
+  return <div className="flex h-full items-center justify-center text-sm text-ink-faint">Loading analytics…</div>;
 }
 
-export default function App() {
-  const { conversationId, startNewConversation, switchConversation } = useConversation();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [mobileDashboardOpen, setMobileDashboardOpen] = useState(false);
+function TopNav() {
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `rounded-md px-3 py-1.5 font-mono text-xs uppercase tracking-wide ${
+      isActive ? "bg-ledger-tint text-ledger" : "text-ink-soft hover:text-ledger"
+    }`;
 
   return (
-    <div className="relative grid h-screen grid-cols-1 bg-paper md:grid-cols-[260px_1fr_380px]">
+    <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
+      <span className="font-display text-sm font-semibold text-ink">Ledger</span>
+      <nav className="flex gap-1">
+        <NavLink to="/" end className={linkClass}>
+          Chat
+        </NavLink>
+        <NavLink to="/analytics" className={linkClass}>
+          Analytics
+        </NavLink>
+      </nav>
+    </header>
+  );
+}
+
+function ChatPage() {
+  const { conversationId, startNewConversation, switchConversation } = useConversation();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  return (
+    <div className="relative grid h-full grid-cols-1 md:grid-cols-[260px_1fr]">
       <aside className="hidden border-r border-line md:block">
         <ConversationSidebar
           activeConversationId={conversationId}
@@ -38,14 +55,7 @@ export default function App() {
         conversationId={conversationId}
         onNewConversation={startNewConversation}
         onOpenSidebar={() => setMobileSidebarOpen(true)}
-        onOpenDashboard={() => setMobileDashboardOpen(true)}
       />
-
-      <aside className="hidden border-l border-line md:block">
-        <Suspense fallback={<DashboardFallback />}>
-          <DashboardPanel />
-        </Suspense>
-      </aside>
 
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-20 flex md:hidden">
@@ -70,22 +80,32 @@ export default function App() {
           />
         </div>
       )}
-
-      {mobileDashboardOpen && (
-        <div className="fixed inset-0 z-20 flex justify-end md:hidden">
-          <button
-            type="button"
-            aria-label="Close dashboard"
-            className="flex-1 bg-ink/20"
-            onClick={() => setMobileDashboardOpen(false)}
-          />
-          <div className="w-80 bg-paper shadow-xl">
-            <Suspense fallback={<DashboardFallback />}>
-              <DashboardPanel />
-            </Suspense>
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+function AnalyticsPage() {
+  return (
+    <div className="h-full overflow-y-auto">
+      <Suspense fallback={<DashboardFallback />}>
+        <DashboardPanel />
+      </Suspense>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <div className="flex h-screen flex-col bg-paper">
+        <TopNav />
+        <div className="min-h-0 flex-1">
+          <Routes>
+            <Route path="/" element={<ChatPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+          </Routes>
+        </div>
+      </div>
+    </BrowserRouter>
   );
 }
