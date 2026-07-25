@@ -15,6 +15,27 @@ function DashboardFallback() {
   return <div className="flex h-full items-center justify-center text-sm text-ink-faint">Loading analytics…</div>;
 }
 
+function LogoMark() {
+  return (
+    <svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true">
+      <rect x="4" y="3" width="24" height="26" rx="3" fill="#0f5c4d" />
+      <rect x="8" y="3" width="1.5" height="26" fill="#0b4438" />
+      <line x1="13" y1="11" x2="24" y2="11" stroke="#faf9f5" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="13" y1="16" x2="24" y2="16" stroke="#faf9f5" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="13" y1="21" x2="20" y2="21" stroke="#faf9f5" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="24" cy="22.5" r="3.4" fill="#9c7a1f" />
+      <path
+        d="M22.5 22.5l1.1 1.1 2-2.2"
+        stroke="#faf9f5"
+        strokeWidth="1.1"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function TopNav() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `rounded-md px-3 py-1.5 font-mono text-xs uppercase tracking-wide ${
@@ -23,7 +44,10 @@ function TopNav() {
 
   return (
     <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
-      <span className="font-display text-sm font-semibold text-ink">Ledger</span>
+      <div className="flex items-center gap-2">
+        <LogoMark />
+        <span className="font-display text-sm font-semibold text-ink">Ledger</span>
+      </div>
       <nav className="flex gap-1">
         <NavLink to="/" end className={linkClass}>
           Chat
@@ -41,8 +65,8 @@ function ChatPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="relative grid h-full grid-cols-1 md:grid-cols-[260px_1fr]">
-      <aside className="hidden border-r border-line md:block">
+    <div className="relative grid h-full min-h-0 grid-cols-1 md:grid-cols-[260px_1fr]">
+      <aside className="hidden min-h-0 border-r border-line md:block">
         <ConversationSidebar
           activeConversationId={conversationId}
           onSelect={switchConversation}
@@ -53,7 +77,6 @@ function ChatPage() {
       <ChatPanel
         key={conversationId}
         conversationId={conversationId}
-        onNewConversation={startNewConversation}
         onOpenSidebar={() => setMobileSidebarOpen(true)}
       />
 
@@ -86,7 +109,7 @@ function ChatPage() {
 
 function AnalyticsPage() {
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full min-h-0 overflow-y-auto">
       <Suspense fallback={<DashboardFallback />}>
         <DashboardPanel />
       </Suspense>

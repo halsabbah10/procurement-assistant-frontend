@@ -122,7 +122,7 @@ export function ConversationSidebar({
   }, [conversations, search]);
 
   return (
-    <div className="flex h-full flex-col bg-paper-dim">
+    <div className="flex h-full min-h-0 flex-col bg-paper-dim">
       <div className="p-3">
         <button
           type="button"
@@ -141,7 +141,7 @@ export function ConversationSidebar({
           className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ledger"
         />
       </div>
-      <div className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
+      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
         {filtered.length === 0 && (
           <p className="px-2 py-4 text-center text-xs text-ink-faint">
             {conversations.length === 0 ? "No conversations yet." : "No matches."}

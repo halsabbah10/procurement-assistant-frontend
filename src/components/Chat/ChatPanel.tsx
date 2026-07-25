@@ -6,11 +6,9 @@ import { StarterPrompts } from "./StarterPrompts";
 
 export function ChatPanel({
   conversationId,
-  onNewConversation,
   onOpenSidebar,
 }: {
   conversationId: string;
-  onNewConversation: () => void;
   onOpenSidebar: () => void;
 }) {
   // Same shared query as ConversationSidebar (TanStack Query dedupes by key)
@@ -41,8 +39,8 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex h-full min-w-0 flex-col">
-      <header className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
+      <div className="flex items-center border-b border-line px-4 py-3 md:hidden">
         <button
           type="button"
           onClick={onOpenSidebar}
@@ -51,25 +49,9 @@ export function ChatPanel({
         >
           ☰
         </button>
-        <button
-          type="button"
-          onClick={onNewConversation}
-          className="rounded-md border border-line px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft hover:border-ledger hover:text-ledger"
-        >
-          New conversation
-        </button>
-      </header>
-      <div className="hidden items-center justify-end border-b border-line px-4 py-3 md:flex">
-        <button
-          type="button"
-          onClick={onNewConversation}
-          className="rounded-md border border-line px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft hover:border-ledger hover:text-ledger"
-        >
-          New conversation
-        </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <StarterPrompts onSelect={handleQuickSend} />
         ) : (
