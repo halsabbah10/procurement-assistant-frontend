@@ -39,8 +39,18 @@ export function DashboardPanel() {
     [data],
   );
 
-  if (isLoading) return <div className="p-6 text-sm text-ink-faint">Loading dashboard…</div>;
-  if (error) return <div className="p-6 text-sm text-oxide">Couldn't load analytics.</div>;
+  if (isLoading)
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-ink-faint">
+        Loading analytics…
+      </div>
+    );
+  if (error)
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-oxide">
+        Couldn't load analytics.
+      </div>
+    );
   if (!data) return null;
 
   if (selectedDepartment) {
