@@ -1,1 +1,143 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+ * Design system: "Ledger" — an official-record aesthetic for a public
+ * purchase-order dataset. Warm paper surface, deep ledger-green + brass
+ * accents (not a generic cream/terracotta AI palette), IBM Plex across
+ * display/body/mono since the Plex superfamily was built for enterprise
+ * systems software — fitting for a government data tool where currency
+ * figures, dates, and the query-transparency panel all read as data.
+ * ------------------------------------------------------------------- */
+@theme {
+  --color-paper: #faf9f5;
+  --color-paper-dim: #f2f0e9;
+  --color-ink: #1c1b19;
+  --color-ink-soft: #58554d;
+  --color-ink-faint: #8b8779;
+  --color-ledger: #0f5c4d;
+  --color-ledger-dark: #0b4438;
+  --color-ledger-tint: #e7efec;
+  --color-brass: #9c7a1f;
+  --color-brass-tint: #f3ecd8;
+  --color-line: #e2ddd0;
+  --color-surface: #ffffff;
+  --color-oxide: #9b3b34;
+  --color-oxide-tint: #f6e9e7;
+
+  /* Chart palette — validated with the dataviz skill's validator against
+     this page's paper surface (#faf9f5), not eyeballed. Sequential
+     (single-series bar/line): ledger green, 7.5:1 contrast. Categorical
+     (pie / multi-series, up to 3 slots): all-pairs CVD + normal-vision
+     floor both clear in light mode (worst pair ΔE 13.3 CVD / 21.0 normal).
+     A 4th "other" bucket uses a neutral, not a 4th hue, per the skill's
+     "fold to Other past the validated slot count" rule. */
+  --color-chart-series-1: #1b8a6b;
+  --color-chart-series-2: #c99a2e;
+  --color-chart-series-3: #4a5fc1;
+  --color-chart-other: #8b8779;
+
+  --font-display: "IBM Plex Serif", ui-serif, Georgia, serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background-color: var(--color-brass-tint);
+  color: var(--color-ink);
+}
+
+/* Visible keyboard focus everywhere — never suppressed. */
+:focus-visible {
+  outline: 2px solid var(--color-ledger);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Ledger-entry markdown content (tables, code, etc.) inside assistant
+   messages — react-markdown renders plain elements, styled here rather
+   than via a Tailwind plugin since it's a small, contained surface. */
+.prose-ledger {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-ink);
+}
+.prose-ledger p {
+  margin: 0 0 0.75em;
+}
+.prose-ledger p:last-child {
+  margin-bottom: 0;
+}
+.prose-ledger strong {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.prose-ledger ul,
+.prose-ledger ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.25em;
+}
+.prose-ledger li {
+  margin-bottom: 0.25em;
+}
+.prose-ledger code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-paper-dim);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+.prose-ledger table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0 1em;
+  font-size: 0.875rem;
+}
+.prose-ledger th,
+.prose-ledger td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.45em 0.75em;
+  text-align: left;
+}
+.prose-ledger th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+  font-weight: 500;
+}
+.prose-ledger td {
+  font-variant-numeric: tabular-nums;
+}
+.prose-ledger tr:last-child td {
+  border-bottom: none;
+}
+
+/* Perforated edge on the query-transparency stub — the one signature
+   flourish, evoking a torn receipt. Used sparingly, once per panel. */
+.perforated-edge {
+  background-image: radial-gradient(circle, var(--color-paper) 1.5px, transparent 1.6px);
+  background-size: 10px 10px;
+  background-position: left center;
+  background-repeat: repeat-x;
+  height: 3px;
+}
