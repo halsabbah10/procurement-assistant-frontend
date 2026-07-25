@@ -46,7 +46,7 @@ function TopNav() {
     <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
       <div className="flex items-center gap-2">
         <LogoMark />
-        <span className="font-display text-sm font-semibold text-ink">Ledger</span>
+        <span className="font-display text-sm font-semibold text-ink">CA Procurement Assistant</span>
       </div>
       <nav className="flex gap-1">
         <NavLink to="/" end className={linkClass}>

@@ -13,7 +13,7 @@ export function StarterPrompts({ onSelect }: { onSelect: (text: string) => void 
           California State Purchase Orders · FY 2012–2015
         </p>
         <h1 className="mt-2 font-display text-2xl font-semibold text-ink">
-          Ask the ledger anything.
+          Ask about California state purchasing.
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
           346,018 purchase orders, $151B in recorded spending. Ask about departments,

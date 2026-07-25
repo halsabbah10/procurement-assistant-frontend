@@ -46,7 +46,7 @@ export function MessageBubble({
       <div className="mb-1 flex items-baseline gap-2 font-mono text-[0.7rem] uppercase tracking-wide text-ink-faint">
         <span>No. {paddedNumber}</span>
         <span aria-hidden="true">·</span>
-        <span className={isUser ? "text-brass" : "text-ledger"}>{isUser ? "You" : "Ledger"}</span>
+        <span className={isUser ? "text-brass" : "text-ledger"}>{isUser ? "You" : "Assistant"}</span>
       </div>
 
       {isUser ? (
@@ -122,7 +122,7 @@ export function MessageBubble({
           )}
         </>
       ) : (
-        <p className="animate-pulse text-sm text-ink-faint">Consulting the ledger…</p>
+        <p className="animate-pulse text-sm text-ink-faint">Checking the purchase order records…</p>
       )}
     </div>
   );
