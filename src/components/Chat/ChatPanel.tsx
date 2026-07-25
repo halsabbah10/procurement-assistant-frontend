@@ -8,18 +8,16 @@ export function ChatPanel({
   conversationId,
   onNewConversation,
   onOpenSidebar,
-  onOpenDashboard,
 }: {
   conversationId: string;
   onNewConversation: () => void;
   onOpenSidebar: () => void;
-  onOpenDashboard: () => void;
 }) {
   // Same shared query as ConversationSidebar (TanStack Query dedupes by key)
   // — only `refresh` is used here, to make the sidebar list pick up a new
   // conversation's title as soon as the first message lands.
   const { refresh: refreshConversations } = useConversations();
-  const { messages, sendMessage, regenerate, isStreaming } = useChat(
+  const { messages, sendMessage, regenerate, editMessage, isStreaming } = useChat(
     conversationId,
     refreshConversations,
   );
@@ -44,36 +42,32 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-w-0 flex-col">
-      <header className="flex items-center justify-between border-b border-line px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenSidebar}
-            aria-label="Open conversations"
-            className="rounded-md border border-line px-2 py-1.5 text-ink-soft md:hidden"
-          >
-            ☰
-          </button>
-          <span className="font-display text-sm font-semibold text-ink">Ledger</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onNewConversation}
-            className="rounded-md border border-line px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft hover:border-ledger hover:text-ledger"
-          >
-            New conversation
-          </button>
-          <button
-            type="button"
-            onClick={onOpenDashboard}
-            aria-label="Open dashboard"
-            className="rounded-md border border-line px-2 py-1.5 text-ink-soft md:hidden"
-          >
-            ▤
-          </button>
-        </div>
+      <header className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
+        <button
+          type="button"
+          onClick={onOpenSidebar}
+          aria-label="Open conversations"
+          className="rounded-md border border-line px-2 py-1.5 text-ink-soft"
+        >
+          ☰
+        </button>
+        <button
+          type="button"
+          onClick={onNewConversation}
+          className="rounded-md border border-line px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft hover:border-ledger hover:text-ledger"
+        >
+          New conversation
+        </button>
       </header>
+      <div className="hidden items-center justify-end border-b border-line px-4 py-3 md:flex">
+        <button
+          type="button"
+          onClick={onNewConversation}
+          className="rounded-md border border-line px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-ink-soft hover:border-ledger hover:text-ledger"
+        >
+          New conversation
+        </button>
+      </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
@@ -88,6 +82,11 @@ export function ChatPanel({
                 isStreaming={isStreaming}
                 onRegenerate={
                   m.role === "assistant" && !isStreaming ? () => regenerate(m.id) : undefined
+                }
+                onEdit={
+                  m.role === "user" && !isStreaming
+                    ? (newText) => editMessage(m.id, newText)
+                    : undefined
                 }
                 onSelectSuggestion={handleQuickSend}
               />

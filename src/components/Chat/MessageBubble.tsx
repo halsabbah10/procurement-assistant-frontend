@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
@@ -15,17 +15,28 @@ export function MessageBubble({
   message,
   entryNumber,
   onRegenerate,
+  onEdit,
   onSelectSuggestion,
   isStreaming,
 }: {
   message: ChatMessage;
   entryNumber: number;
   onRegenerate?: () => void;
+  onEdit?: (newText: string) => void;
   onSelectSuggestion?: (text: string) => void;
   isStreaming?: boolean;
 }) {
   const isUser = message.role === "user";
   const paddedNumber = String(entryNumber).padStart(3, "0");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(message.text);
+
+  const commitEdit = () => {
+    const trimmed = draft.trim();
+    setIsEditing(false);
+    if (trimmed && trimmed !== message.text) onEdit?.(trimmed);
+    else setDraft(message.text);
+  };
 
   return (
     <div
@@ -39,7 +50,55 @@ export function MessageBubble({
       </div>
 
       {isUser ? (
-        <p className="text-[0.9375rem] text-ink">{message.text}</p>
+        isEditing ? (
+          <div>
+            <textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  commitEdit();
+                }
+                if (e.key === "Escape") {
+                  setDraft(message.text);
+                  setIsEditing(false);
+                }
+              }}
+              rows={3}
+              className="w-full rounded-md border border-brass bg-surface px-3 py-2 text-[0.9375rem] text-ink"
+            />
+            <div className="mt-1.5 flex gap-2">
+              <button
+                type="button"
+                onClick={commitEdit}
+                className="rounded-md bg-ledger px-3 py-1 text-xs font-medium text-white hover:bg-ledger-dark"
+              >
+                Save &amp; submit
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(message.text);
+                  setIsEditing(false);
+                }}
+                className="rounded-md border border-line px-3 py-1 text-xs text-ink-soft hover:border-ledger hover:text-ledger"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-[0.9375rem] text-ink">{message.text}</p>
+            <MessageActions
+              text={message.text}
+              onEdit={onEdit ? () => setIsEditing(true) : undefined}
+              disabled={isStreaming}
+            />
+          </>
+        )
       ) : message.text ? (
         <>
           <div className="prose-ledger">

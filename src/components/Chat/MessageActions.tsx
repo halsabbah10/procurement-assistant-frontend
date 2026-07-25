@@ -26,13 +26,23 @@ function RegenerateIcon() {
   );
 }
 
+function EditIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+  );
+}
+
 export function MessageActions({
   text,
   onRegenerate,
+  onEdit,
   disabled,
 }: {
   text: string;
   onRegenerate?: () => void;
+  onEdit?: () => void;
   disabled?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
@@ -49,11 +59,23 @@ export function MessageActions({
         type="button"
         onClick={handleCopy}
         className="flex items-center gap-1 text-xs hover:text-ledger"
-        aria-label="Copy response"
+        aria-label="Copy message"
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
         {copied ? "Copied" : "Copy"}
       </button>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={disabled}
+          className="flex items-center gap-1 text-xs hover:text-ledger disabled:opacity-50"
+          aria-label="Edit message"
+        >
+          <EditIcon />
+          Edit
+        </button>
+      )}
       {onRegenerate && (
         <button
           type="button"

@@ -129,5 +129,37 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
     [messages, streamInto],
   );
 
-  return { messages, sendMessage, regenerate, isStreaming };
+  // Edits a user message in place and re-answers it, replacing the
+  // assistant response that followed it. Like `regenerate`, this re-sends
+  // the (now-edited) text as a new turn on the same thread rather than
+  // erasing the original from the backend's checkpointed history — a
+  // deliberate simplification versus ChatGPT's branching edit behavior.
+  const editMessage = useCallback(
+    async (userMessageId: string, newText: string) => {
+      const index = messages.findIndex((m) => m.id === userMessageId);
+      if (index === -1) return;
+      const next = messages[index + 1];
+      const assistantId = next && next.role === "assistant" ? next.id : crypto.randomUUID();
+
+      setMessages((prev) => {
+        const withEditedText = prev.map((m) =>
+          m.id === userMessageId ? { ...m, text: newText } : m,
+        );
+        const hasFollowingAssistant = next && next.role === "assistant";
+        const reset = withEditedText.map((m) =>
+          hasFollowingAssistant && m.id === assistantId
+            ? { id: m.id, role: "assistant" as const, text: "", steps: [] }
+            : m,
+        );
+        return hasFollowingAssistant
+          ? reset
+          : [...reset, { id: assistantId, role: "assistant" as const, text: "", steps: [] }];
+      });
+
+      await streamInto(newText, assistantId);
+    },
+    [messages, streamInto],
+  );
+
+  return { messages, sendMessage, regenerate, editMessage, isStreaming };
 }
