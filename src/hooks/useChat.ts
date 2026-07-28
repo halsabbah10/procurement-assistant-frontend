@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchConversationMessages, streamChat } from "../lib/api";
 import type { ChatMessage } from "../lib/types";
 
@@ -16,6 +16,7 @@ function loadMessages(conversationId: string): ChatMessage[] {
 export function useChat(conversationId: string, onMessageSent?: () => void) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(conversationId));
   const [isStreaming, setIsStreaming] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Persists on every change so a reload resumes exactly where the user
   // left off — paired with useConversation, which keeps the same
@@ -53,36 +54,66 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
+  // A request the user has "moved on" from (switched conversations,
+  // navigated away) must not keep running unattended on the backend — it
+  // was still burning a full Sonnet/Opus/Haiku call chain server-side with
+  // nothing listening. Aborting on unmount (this hook fully remounts on
+  // conversation switch, per the comment above) actually cancels the
+  // underlying fetch, which Starlette/uvicorn detect as a client
+  // disconnect and stop processing. Reproduced live: firing several of
+  // these questions back to back without cancelling the prior one drove
+  // response times from ~45s to 115-125s each under just 4 concurrent
+  // requests, before this fix.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const streamInto = useCallback(
     async (userText: string, assistantId: string) => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       setIsStreaming(true);
       try {
-        await streamChat(userText, conversationId, (chunk) => {
-          setMessages((prev) =>
-            prev.map((m) => {
-              if (m.id !== assistantId) return m;
-              if (chunk.type === "step") return { ...m, steps: [...m.steps, chunk.text] };
-              if (chunk.type === "final_answer") {
-                return {
-                  ...m,
-                  text: chunk.text,
-                  query: chunk.query,
-                  suggestions: chunk.suggestions,
-                  chart: chunk.chart,
-                };
-              }
-              if (chunk.type === "error") return { ...m, text: chunk.text };
-              return m;
-            }),
-          );
-        });
-      } catch {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, text: "Something went wrong — try again." } : m,
-          ),
+        await streamChat(
+          userText,
+          conversationId,
+          (chunk) => {
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== assistantId) return m;
+                if (chunk.type === "step") return { ...m, steps: [...m.steps, chunk.text] };
+                if (chunk.type === "final_answer") {
+                  return { ...m, text: chunk.text, query: chunk.query };
+                }
+                if (chunk.type === "enrichment") {
+                  return { ...m, suggestions: chunk.suggestions, chart: chunk.chart };
+                }
+                if (chunk.type === "error") return { ...m, text: chunk.text };
+                return m;
+              }),
+            );
+          },
+          controller.signal,
         );
+      } catch (err) {
+        // A deliberate stop (Stop button, or switching away mid-stream)
+        // throws AbortError — that's not a failure, so don't overwrite
+        // whatever text had already streamed in with an error message.
+        if (err instanceof DOMException && err.name === "AbortError") {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId && !m.text ? { ...m, text: "Stopped." } : m)),
+          );
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, text: "Something went wrong — try again." } : m,
+            ),
+          );
+        }
       } finally {
+        if (abortRef.current === controller) abortRef.current = null;
         setIsStreaming(false);
         // The backend touches the conversation's title/updated_at before
         // streaming starts (app/routers/chat.py), so the sidebar has
@@ -93,6 +124,10 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
     },
     [conversationId, onMessageSent],
   );
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -161,5 +196,5 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
     [messages, streamInto],
   );
 
-  return { messages, sendMessage, regenerate, editMessage, isStreaming };
+  return { messages, sendMessage, regenerate, editMessage, isStreaming, stopStreaming };
 }

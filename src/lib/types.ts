@@ -8,13 +8,8 @@ export interface ChartPayload {
 
 export type ChatChunk =
   | { type: "step"; text: string }
-  | {
-      type: "final_answer";
-      text: string;
-      query?: string;
-      suggestions?: string[];
-      chart?: ChartPayload;
-    }
+  | { type: "final_answer"; text: string; query?: string }
+  | { type: "enrichment"; suggestions?: string[]; chart?: ChartPayload }
   | { type: "error"; text: string };
 
 export interface ChatMessage {

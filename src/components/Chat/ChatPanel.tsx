@@ -4,6 +4,12 @@ import { useConversations } from "../../hooks/useConversations";
 import { MessageBubble } from "./MessageBubble";
 import { StarterPrompts } from "./StarterPrompts";
 
+// After this long with no visible progress, reassure the user rather than
+// let them assume it's stuck and abandon it for a retry — retrying while
+// the original request is still running is exactly what compounds into
+// much longer waits for everyone (see useChat's stopStreaming comment).
+const SLOW_RESPONSE_HINT_MS = 15_000;
+
 export function ChatPanel({
   conversationId,
   onOpenSidebar,
@@ -15,16 +21,26 @@ export function ChatPanel({
   // — only `refresh` is used here, to make the sidebar list pick up a new
   // conversation's title as soon as the first message lands.
   const { refresh: refreshConversations } = useConversations();
-  const { messages, sendMessage, regenerate, editMessage, isStreaming } = useChat(
+  const { messages, sendMessage, regenerate, editMessage, isStreaming, stopStreaming } = useChat(
     conversationId,
     refreshConversations,
   );
   const [input, setInput] = useState("");
+  const [showSlowHint, setShowSlowHint] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      setShowSlowHint(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowSlowHint(true), SLOW_RESPONSE_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [isStreaming]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,22 +93,40 @@ export function ChatPanel({
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 border-t border-line bg-surface p-4">
-        <input
-          className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ledger"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about spending, departments, suppliers, or items…"
-          disabled={isStreaming}
-          aria-label="Ask a question"
-        />
-        <button
-          type="submit"
-          disabled={isStreaming || !input.trim()}
-          className="rounded-md bg-ledger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ledger-dark disabled:opacity-50"
-        >
-          {isStreaming ? "Asking…" : "Ask"}
-        </button>
+      <form onSubmit={handleSubmit} className="border-t border-line bg-surface p-4">
+        {showSlowHint && (
+          <p className="mb-2 text-xs text-ink-faint">
+            Still working — complex questions can take up to a minute. Retrying won't speed this
+            up; use Stop if you'd rather ask something else.
+          </p>
+        )}
+        <div className="flex gap-2">
+          <input
+            className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ledger"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about spending, departments, suppliers, or items…"
+            disabled={isStreaming}
+            aria-label="Ask a question"
+          />
+          {isStreaming ? (
+            <button
+              type="button"
+              onClick={stopStreaming}
+              className="rounded-md border border-oxide px-4 py-2 text-sm font-medium text-oxide transition-colors hover:bg-oxide-tint"
+            >
+              Stop
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim()}
+              className="rounded-md bg-ledger px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ledger-dark disabled:opacity-50"
+            >
+              Ask
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

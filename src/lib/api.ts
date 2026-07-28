@@ -6,11 +6,13 @@ export async function streamChat(
   message: string,
   conversationId: string,
   onChunk: (chunk: ChatChunk) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, conversation_id: conversationId }),
+    signal,
   });
 
   if (!response.ok) {
