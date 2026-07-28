@@ -1,8 +1,14 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ACTIVE_ID_KEY = "procurement.conversationId";
 
-function readOrCreateConversationId(): string {
+/** Resolves which conversation the bare /chat route should redirect to:
+ * whatever was last active, or a fresh id if there's no history yet. Only
+ * used by the /chat entry-redirect — once a conversation has its own
+ * /chat/:conversationId URL, that URL (not localStorage) is the source of
+ * truth for which thread is showing. */
+export function resolveActiveConversationId(): string {
   const existing = localStorage.getItem(ACTIVE_ID_KEY);
   if (existing) return existing;
   const fresh = crypto.randomUUID();
@@ -10,24 +16,27 @@ function readOrCreateConversationId(): string {
   return fresh;
 }
 
-/** Persists which conversation is active across reloads — a page refresh
- * resumes the same thread_id, so the backend's LangGraph checkpoint memory
- * and the frontend's displayed history stay in sync. Without this, a
- * refresh would keep showing old messages (if those were persisted
- * separately) while the backend agent had no memory of them at all. */
-export function useConversation() {
-  const [conversationId, setConversationId] = useState(readOrCreateConversationId);
+/** Navigation actions for switching the active conversation. Every
+ * conversation gets its own URL (/chat/:conversationId) — bookmarkable,
+ * shareable, and survives a reload by URL alone, not just localStorage.
+ * Still updates the "last active" pointer so a bare /chat visit resumes
+ * the right thread. */
+export function useConversationNav() {
+  const navigate = useNavigate();
+
+  const switchConversation = useCallback(
+    (id: string) => {
+      localStorage.setItem(ACTIVE_ID_KEY, id);
+      navigate(`/chat/${id}`);
+    },
+    [navigate],
+  );
 
   const startNewConversation = useCallback(() => {
     const fresh = crypto.randomUUID();
     localStorage.setItem(ACTIVE_ID_KEY, fresh);
-    setConversationId(fresh);
-  }, []);
+    navigate(`/chat/${fresh}`);
+  }, [navigate]);
 
-  const switchConversation = useCallback((id: string) => {
-    localStorage.setItem(ACTIVE_ID_KEY, id);
-    setConversationId(id);
-  }, []);
-
-  return { conversationId, startNewConversation, switchConversation };
+  return { switchConversation, startNewConversation };
 }

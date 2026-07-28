@@ -1,5 +1,20 @@
 import { expect, test } from "@playwright/test";
 
+test("every conversation has its own bookmarkable URL", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/chat\/[a-f0-9-]{36}$/);
+  const firstUrl = page.url();
+
+  await page.getByRole("button", { name: "+ New conversation" }).click();
+  await expect(page).not.toHaveURL(firstUrl);
+  await expect(page).toHaveURL(/\/chat\/[a-f0-9-]{36}$/);
+
+  // Reloading a specific conversation's URL directly restores that same
+  // thread rather than bouncing to a different/fresh one.
+  await page.goto(firstUrl);
+  await expect(page).toHaveURL(firstUrl);
+});
+
 test("empty state shows starter prompts", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Ask about California state purchasing.")).toBeVisible();

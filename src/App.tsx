@@ -1,8 +1,16 @@
-import { Suspense, lazy, useState } from "react";
-import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
+import { Suspense, lazy, useEffect, useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  NavLink,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { ChatPanel } from "./components/Chat/ChatPanel";
 import { ConversationSidebar } from "./components/Chat/ConversationSidebar";
-import { useConversation } from "./hooks/useConversation";
+import { resolveActiveConversationId, useConversationNav } from "./hooks/useConversation";
 
 // Lazy-loaded: pulls in Recharts, which would otherwise force the chart
 // library onto every page load (including the chat page) regardless of
@@ -49,7 +57,7 @@ function TopNav() {
         <span className="font-display text-sm font-semibold text-ink">CA Procurement Assistant</span>
       </div>
       <nav className="flex gap-1">
-        <NavLink to="/" end className={linkClass}>
+        <NavLink to="/chat" className={linkClass}>
           Chat
         </NavLink>
         <NavLink to="/analytics" className={linkClass}>
@@ -60,9 +68,25 @@ function TopNav() {
   );
 }
 
+// Bare /chat has no conversation id of its own — resolve which thread to
+// show (last active, or a fresh one) and normalize the URL to
+// /chat/:conversationId immediately, so every thread is individually
+// addressable rather than /chat silently standing in for "whichever
+// conversation happens to be active."
+function ChatEntry() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate(`/chat/${resolveActiveConversationId()}`, { replace: true });
+  }, [navigate]);
+  return null;
+}
+
 function ChatPage() {
-  const { conversationId, startNewConversation, switchConversation } = useConversation();
+  const { conversationId } = useParams<{ conversationId: string }>();
+  const { startNewConversation, switchConversation } = useConversationNav();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  if (!conversationId) return null;
 
   return (
     <div className="relative grid h-full min-h-0 grid-cols-1 md:grid-cols-[260px_1fr]">
@@ -124,7 +148,9 @@ export default function App() {
         <TopNav />
         <div className="min-h-0 flex-1">
           <Routes>
-            <Route path="/" element={<ChatPage />} />
+            <Route path="/" element={<Navigate to="/chat" replace />} />
+            <Route path="/chat" element={<ChatEntry />} />
+            <Route path="/chat/:conversationId" element={<ChatPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
           </Routes>
         </div>

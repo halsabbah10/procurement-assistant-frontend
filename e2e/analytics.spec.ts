@@ -30,6 +30,6 @@ test("chat and analytics are separate pages with working navigation", async ({ p
   await expect(page.getByPlaceholder(/Ask about spending/)).not.toBeVisible();
 
   await page.getByRole("link", { name: "Chat" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/chat\/[a-f0-9-]{36}$/);
   await expect(page.getByPlaceholder(/Ask about spending/)).toBeVisible();
 });
