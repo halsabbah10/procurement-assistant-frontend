@@ -1,33 +1,6 @@
 import type { ChatChunk, ConversationSummary } from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-const CLIENT_ID_KEY = "procurement.clientId";
-const CLIENT_ID_HEADER = "X-Client-Id";
-
-// Anonymous per-browser identity — this app has no login system. Sent on
-// every request so the backend can scope "your conversations" to this
-// browser instead of returning every visitor's conversation history (see
-// backend's app/core/client_id.py for the full rationale). Guarded the
-// same way useConversation.ts's localStorage calls are: some environments
-// (storage disabled, certain private-browsing modes) throw on access, and
-// losing conversation-list scoping for that one session is a fine
-// degrade — crashing the app over it is not.
-function getClientId(): string | undefined {
-  try {
-    const existing = localStorage.getItem(CLIENT_ID_KEY);
-    if (existing) return existing;
-    const fresh = crypto.randomUUID();
-    localStorage.setItem(CLIENT_ID_KEY, fresh);
-    return fresh;
-  } catch {
-    return undefined;
-  }
-}
-
-function withClientId(headers: Record<string, string> = {}): Record<string, string> {
-  const clientId = getClientId();
-  return clientId ? { ...headers, [CLIENT_ID_HEADER]: clientId } : headers;
-}
 
 export async function streamChat(
   message: string,
@@ -37,7 +10,7 @@ export async function streamChat(
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/chat`, {
     method: "POST",
-    headers: withClientId({ "Content-Type": "application/json" }),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, conversation_id: conversationId }),
     signal,
   });
@@ -116,7 +89,7 @@ export async function exportQueryResults(query: string, format: "csv" | "json"):
 }
 
 export async function fetchConversations(): Promise<ConversationSummary[]> {
-  const response = await fetch(`${API_BASE_URL}/api/conversations`, { headers: withClientId() });
+  const response = await fetch(`${API_BASE_URL}/api/conversations`);
   if (!response.ok) throw new Error("Failed to fetch conversations");
   return response.json();
 }
@@ -124,9 +97,7 @@ export async function fetchConversations(): Promise<ConversationSummary[]> {
 export async function fetchConversationMessages(
   conversationId: string,
 ): Promise<Array<{ role: "user" | "assistant"; text: string }>> {
-  const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/messages`, {
-    headers: withClientId(),
-  });
+  const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/messages`);
   if (!response.ok) return [];
   const body = await response.json();
   return body.messages;
@@ -135,7 +106,7 @@ export async function fetchConversationMessages(
 export async function renameConversation(conversationId: string, title: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}`, {
     method: "PATCH",
-    headers: withClientId({ "Content-Type": "application/json" }),
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title }),
   });
   if (!response.ok) throw new Error("Failed to rename conversation");
@@ -144,7 +115,6 @@ export async function renameConversation(conversationId: string, title: string):
 export async function deleteConversation(conversationId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}`, {
     method: "DELETE",
-    headers: withClientId(),
   });
   if (!response.ok && response.status !== 204) throw new Error("Failed to delete conversation");
 }
