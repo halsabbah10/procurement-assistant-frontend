@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { ChatPanel } from "./components/Chat/ChatPanel";
 import { ConversationSidebar } from "./components/Chat/ConversationSidebar";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { resolveActiveConversationId, useConversationNav } from "./hooks/useConversation";
 
 // Lazy-loaded: pulls in Recharts, which would otherwise force the chart
@@ -143,18 +144,20 @@ function AnalyticsPage() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div className="flex h-screen flex-col bg-paper">
-        <TopNav />
-        <div className="min-h-0 flex-1">
-          <Routes>
-            <Route path="/" element={<Navigate to="/chat" replace />} />
-            <Route path="/chat" element={<ChatEntry />} />
-            <Route path="/chat/:conversationId" element={<ChatPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-          </Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <div className="flex h-screen flex-col bg-paper">
+          <TopNav />
+          <div className="min-h-0 flex-1">
+            <Routes>
+              <Route path="/" element={<Navigate to="/chat" replace />} />
+              <Route path="/chat" element={<ChatEntry />} />
+              <Route path="/chat/:conversationId" element={<ChatPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+            </Routes>
+          </div>
         </div>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
