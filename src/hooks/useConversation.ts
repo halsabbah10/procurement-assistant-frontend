@@ -25,6 +25,27 @@ function safeSetItem(key: string, value: string): void {
   }
 }
 
+// Conversation ids minted here (a brand-new /chat visit, or "+ New
+// conversation") are known, at creation time, to have zero server-side
+// history — no /api/chat call has ever been made for them, so no
+// LangGraph checkpoint and no conversations doc exists yet. Without this,
+// useChat's mount effect can't tell that apart from an existing
+// conversation id (e.g. one picked from the sidebar, or reloaded from a
+// bookmarked URL) that might genuinely have server history to fetch, so it
+// probed GET /api/conversations/{id}/messages unconditionally — a request
+// that's guaranteed to 404 for a freshly minted id, on every single first
+// visit. wasJustCreated both checks and consumes the marker (one-shot: a
+// later reload of the same URL no longer has this in-memory context, and
+// correctly falls back to asking the server, which is the right behavior
+// once we no longer know for certain).
+const freshlyCreatedIds = new Set<string>();
+
+export function wasJustCreated(conversationId: string): boolean {
+  const fresh = freshlyCreatedIds.has(conversationId);
+  freshlyCreatedIds.delete(conversationId);
+  return fresh;
+}
+
 /** Resolves which conversation the bare /chat route should redirect to:
  * whatever was last active, or a fresh id if there's no history yet. Only
  * used by the /chat entry-redirect — once a conversation has its own
@@ -34,6 +55,7 @@ export function resolveActiveConversationId(): string {
   const existing = safeGetItem(ACTIVE_ID_KEY);
   if (existing) return existing;
   const fresh = crypto.randomUUID();
+  freshlyCreatedIds.add(fresh);
   safeSetItem(ACTIVE_ID_KEY, fresh);
   return fresh;
 }
@@ -56,6 +78,7 @@ export function useConversationNav() {
 
   const startNewConversation = useCallback(() => {
     const fresh = crypto.randomUUID();
+    freshlyCreatedIds.add(fresh);
     safeSetItem(ACTIVE_ID_KEY, fresh);
     navigate(`/chat/${fresh}`);
   }, [navigate]);

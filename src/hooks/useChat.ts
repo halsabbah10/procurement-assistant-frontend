@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchConversationMessages, streamChat } from "../lib/api";
+import { wasJustCreated } from "./useConversation";
 import type { ChatMessage } from "../lib/types";
 
 const messagesKey = (conversationId: string) => `procurement.messages.${conversationId}`;
@@ -42,8 +43,14 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
   // sidebar that was started on a different device/browser. This hook
   // fully remounts on conversation switch (App.tsx keys ChatPanel by
   // conversationId), so "on mount" here means "on conversation selected."
+  //
+  // Skipped for a conversation id this browser just minted itself (a fresh
+  // /chat visit, or "+ New conversation") — those are guaranteed to have
+  // zero server-side history yet (no /api/chat call has been made for
+  // them), so the fetch was a guaranteed-404 request on every first visit.
   useEffect(() => {
     if (messages.length > 0) return;
+    if (wasJustCreated(conversationId)) return;
     let cancelled = false;
     fetchConversationMessages(conversationId)
       .then((serverMessages) => {
