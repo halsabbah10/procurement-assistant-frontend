@@ -22,8 +22,18 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
   // left off — paired with useConversation, which keeps the same
   // thread_id across reloads so the backend's own conversation memory
   // (LangGraph checkpointer) stays in sync with what's shown here.
+  // Guarded: a long conversation (this app stores full chat text,
+  // including markdown tables and chart JSON, per conversation) can
+  // exceed the ~5-10MB localStorage quota, and some private-browsing
+  // contexts reject writes outright — either throws inside this effect,
+  // uncaught, which would otherwise crash the tab mid-conversation.
   useEffect(() => {
-    localStorage.setItem(messagesKey(conversationId), JSON.stringify(messages));
+    try {
+      localStorage.setItem(messagesKey(conversationId), JSON.stringify(messages));
+    } catch {
+      // Best-effort persistence — the conversation still works for this
+      // session, it just won't survive a reload.
+    }
   }, [conversationId, messages]);
 
   // Falls back to the server-reconstructed history (text only — see
@@ -106,9 +116,16 @@ export function useChat(conversationId: string, onMessageSent?: () => void) {
             prev.map((m) => (m.id === assistantId && !m.text ? { ...m, text: "Stopped." } : m)),
           );
         } else {
+          // Only overwrite if nothing has rendered yet. A stream can fail
+          // (e.g. one malformed trailing SSE chunk — see lib/api.ts) after
+          // the real final_answer already arrived and rendered; without
+          // this guard, that already-visible answer got wiped and replaced
+          // with a generic error message.
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantId ? { ...m, text: "Something went wrong — try again." } : m,
+              m.id === assistantId && !m.text
+                ? { ...m, text: "Something went wrong — try again." }
+                : m,
             ),
           );
         }
