@@ -122,7 +122,17 @@ export function MessageBubble({
           )}
         </>
       ) : (
-        <p className="animate-pulse text-sm text-ink-faint">Checking the purchase order records…</p>
+        // message.steps is populated live from the backend's SSE "step"
+        // chunks (see useChat.ts) as the agent works — previously captured
+        // in state but never read here, so the static placeholder never
+        // changed regardless of what the agent was actually doing. This
+        // directly backs the product's own claim that "every answer shows
+        // its work."
+        <p className="animate-pulse text-sm text-ink-faint">
+          {message.steps.length > 0
+            ? message.steps[message.steps.length - 1]
+            : "Checking the purchase order records…"}
+        </p>
       )}
     </div>
   );

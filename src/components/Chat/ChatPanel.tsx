@@ -67,28 +67,50 @@ export function ChatPanel({
         </button>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 overflow-y-auto"
+        role="log"
+        aria-live="polite"
+        aria-busy={isStreaming}
+      >
         {messages.length === 0 ? (
           <StarterPrompts onSelect={handleQuickSend} />
         ) : (
           <div className="divide-y divide-line px-4">
-            {messages.map((m, i) => (
-              <MessageBubble
-                key={m.id}
-                message={m}
-                entryNumber={i + 1}
-                isStreaming={isStreaming}
-                onRegenerate={
-                  m.role === "assistant" && !isStreaming ? () => regenerate(m.id) : undefined
-                }
-                onEdit={
-                  m.role === "user" && !isStreaming
-                    ? (newText) => editMessage(m.id, newText)
-                    : undefined
-                }
-                onSelectSuggestion={handleQuickSend}
-              />
-            ))}
+            {messages.map((m, i) => {
+              // regenerate/editMessage both re-send as a NEW turn appended
+              // to the backend's append-only LangGraph checkpoint (there's
+              // no API to erase/replace a turn in it — see useChat.ts).
+              // That's only correct for the most recent exchange: editing
+              // an earlier message would splice the edited text into the
+              // middle of the visible transcript while the backend
+              // actually appends it after everything that came later,
+              // permanently diverging what's shown from what the model's
+              // real context contains. Restricting to the last user/
+              // assistant message keeps the UI's displayed order and the
+              // backend's real turn order the same thing.
+              const isLastAssistant = m.role === "assistant" && i === messages.length - 1;
+              // sendMessage always pushes the user turn and its (possibly
+              // still-empty/streaming) assistant reply together, so the
+              // last user message is always the second-to-last entry.
+              const isLastUser = m.role === "user" && i === messages.length - 2;
+              return (
+                <MessageBubble
+                  key={m.id}
+                  message={m}
+                  entryNumber={i + 1}
+                  isStreaming={isStreaming}
+                  onRegenerate={
+                    isLastAssistant && !isStreaming ? () => regenerate(m.id) : undefined
+                  }
+                  onEdit={
+                    isLastUser && !isStreaming ? (newText) => editMessage(m.id, newText) : undefined
+                  }
+                  onSelectSuggestion={handleQuickSend}
+                />
+              );
+            })}
           </div>
         )}
       </div>
